@@ -198,15 +198,15 @@
                 <b ng-if="a.Type == 'TM'" translate="AUTOEDIT.TAPEALPHABET" style="margin:0;padding:0"></b> 
                 <br>
                 <md-radio-group ng-model="a.selectedStackAlphabet" ng-change="a.parseUserAlphabet()">
-                  <md-radio-button value="A0">Γ<sub>1</sub> = { <b>|</b> }</md-radio-button>
-                  <md-radio-button value="A1">Γ<sub>2</sub> = { <b>0</b>, a, b, c }</md-radio-button>
-                  <md-radio-button value="A2">Γ<sub>3</sub> = { <b>$</b>, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }</md-radio-button>
-                  <md-radio-button value="A3">Γ<sub>4</sub> = { <b>&#9679;</b>, &#9829;, &#9992;, &#9993;, &#9998;, &#10006;, &#10052; }</md-radio-button>
+                  <md-radio-button value="A0">Γ<sub>1</sub> = { | }</md-radio-button>
+                  <md-radio-button value="A1">Γ<sub>2</sub> = { 0, a, b, c }</md-radio-button>
+                  <md-radio-button value="A2">Γ<sub>3</sub> = { $, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }</md-radio-button>
+                  <md-radio-button value="A3">Γ<sub>4</sub> = { &#9679;, &#9829;, &#9992;, &#9993;, &#9998;, &#10006;, &#10052; }</md-radio-button>
                   <md-radio-button value="A4">Γ<sub>5</sub>  
                     <span ng-if="a.userStackAlphabet.length == 0" translate="AUTOEDIT.CREATEALPHABET"></span>
                     <span ng-if="a.userStackAlphabet.length > 0">= { 
                       <span ng-repeat="c in a.userStackAlphabet">   
-                        <span class="borderLabel" ng-style="{'font-weight':$index == 0 ? 'bold':''}">{{c}}</span>
+                        <span class="borderLabel">{{c}}</span>
                         <span ng-if="!$last"> , </span>
                       </span> }
                     </span>
@@ -215,10 +215,22 @@
                 <md-input-container layout-fill ng-if="a.selectedStackAlphabet == 'A4'">
                   <label translate="AUTOEDIT.ALHABETCHARS"></label>
                   <input ng-model="a.userStackAlphabetInput" id="userStackAlphabetInput" ng-change="a.parseUserAlphabet()" ng-model-options="{ debounce: 1000 }">
-                </md-input-container>   
-                <b ng-if="a.Type != 'TM'" style="margin:0;padding:0" translate="AUTOEDIT.INITIALSTACKCHAR"></b>
-                <b ng-if="a.Type == 'TM'" style="margin:0;padding:0" translate="AUTOEDIT.INITIALTAPECHAR"></b>
-                  : <b style="margin:0;padding:0">{{a.automaton.StackAlphabet.length > 0 ? a.automaton.StackAlphabet[0] : '?'}}</b>    
+                </md-input-container>
+                <div>
+                  <md-input-container>
+                      <label><span ng-if="a.Type != 'TM'" translate="AUTOEDIT.INITIALSTACKCHAR"></span><span ng-if="a.Type == 'TM'">Blank Symbol</span></label>
+                      <md-select ng-model="a.automaton.blankSymbol" ng-change="a.makeUndoStep()">
+                          <md-option ng-repeat="z in a.automaton.StackAlphabet" value="{{z}}">{{z}}</md-option>
+                      </md-select>
+                  </md-input-container>
+                  <md-input-container ng-if="a.Type == 'TM'">
+                      <label>End Symbol</label>
+                      <md-select ng-model="a.automaton.endSymbol" ng-change="a.makeUndoStep()">
+                          <md-option value="">-- <span translate="NONE"></span> --</md-option>
+                          <md-option ng-repeat="z in a.automaton.StackAlphabet" value="{{z}}">{{z}}</md-option>
+                      </md-select>
+                  </md-input-container>
+                </div>
               </div>
               <div layout-padding layout-margin ng-if="a.Type == 'MOORE' || a.Type == 'MEALY'">
                 <b translate="AUTOEDIT.OUTPUTALPHABET" style="margin:0;padding:0"></b> 

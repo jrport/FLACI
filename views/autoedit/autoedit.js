@@ -365,6 +365,8 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
         if(!self.automaton.simulationInput) self.automaton.simulationInput = [];
         if(!self.automaton.Alphabet) {self.automaton.Alphabet = []; self.selectedAlphabet = "A0"; }
         if(!self.automaton.StackAlphabet) { self.automaton.StackAlphabet = []; self.selectedStackAlphabet = "A0"; }
+        if(!self.automaton.blankSymbol) { self.automaton.blankSymbol = self.automaton.StackAlphabet.length > 0 ? self.automaton.StackAlphabet[0] : ''; }
+        if(self.automaton.endSymbol === undefined) { self.automaton.endSymbol = ''; }
         if(!self.automaton.States) {
           self.automaton.States = [];
           self.addState();
@@ -1137,13 +1139,14 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
             // check for characters not in Alphabet anymore
             for(var t=0; t < s.Transitions.length; t++){
               for(var l=0; l < s.Transitions[t].Labels.length; l++){
-                s.Transitions[t].Labels[l][0] += ''; // cast to string for sure
-                s.Transitions[t].Labels[l][1] += ''; // cast to string for sure
-                if(self.automaton.StackAlphabet.indexOf(s.Transitions[t].Labels[l][0]) == -1){
+                var label = s.Transitions[t].Labels[l];
+                label[0] += ''; // cast to string for sure
+                label[1] += ''; // cast to string for sure
+                if(label[0] !== '*' && self.automaton.StackAlphabet.indexOf(label[0]) == -1){
                   s.Transitions[t].Labels.splice(l,1); l--;
                   continue;
                 }
-                if(self.automaton.StackAlphabet.indexOf(s.Transitions[t].Labels[l][1]) == -1){
+                if(label[1] !== '*' && self.automaton.StackAlphabet.indexOf(label[1]) == -1){
                   s.Transitions[t].Labels.splice(l,1); l--;
                   continue;
                 }
@@ -1152,6 +1155,14 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
           }
         }
         self.checkAutomaton();
+
+        if(self.automaton.StackAlphabet.indexOf(self.automaton.blankSymbol) === -1) {
+            self.automaton.blankSymbol = self.automaton.StackAlphabet.length > 0 ? self.automaton.StackAlphabet[0] : '';
+        }
+        if(self.automaton.endSymbol !== '' && self.automaton.StackAlphabet.indexOf(self.automaton.endSymbol) === -1) {
+            self.automaton.endSymbol = '';
+        }
+        
         // we checked, try to create an undo step
         if(!noSave) self.makeUndoStep();
       };
@@ -2300,7 +2311,7 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
         }        
         ///// DKA /////
         if(self.Type == "DKA"){ 
-          var stack = [self.automaton.StackAlphabet.length > 0 ? self.automaton.StackAlphabet[0] : '?'];
+          var stack = [self.automaton.blankSymbol ? self.automaton.blankSymbol : '?'];
           var lastEpsilonStates = [];
           function doStepDKA(machine,state){
             var item = {state:state,input:input.slice(0),stack:stack.slice(0),pointer:0};
@@ -2466,7 +2477,7 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
             return changed;
           }
 
-          var stack = [self.automaton.StackAlphabet.length > 0 ? self.automaton.StackAlphabet[0] : '?'];
+          var stack = [self.automaton.blankSymbol ? self.automaton.blankSymbol : '?'];
           self.simulationTrace.push({index:0,items:[]}); // M0
           nkaMaschines.push({step:0,state:state,stack:stack,input:input});
           
@@ -2492,15 +2503,23 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
           // build a long tape first
           var stack = [];
           for(var i=0; i < 2000; i++)
-            stack.push(self.automaton.StackAlphabet[0]);
+            stack.push(self.automaton.blankSymbol);
           var stackPointer = 1000;
           var lastPointer = 1000;
           var step = 0;
-          var pointerRange = [stackPointer,stackPointer+input.length];
           
           // push input on tape
           for(var i=0; i < input.length; i++){
             stack[stackPointer+i] = input[i];
+          }
+
+          // Add end symbol if defined
+          var pointerRange;
+          if (self.automaton.endSymbol && self.automaton.endSymbol !== '') {
+            stack[stackPointer+input.length] = self.automaton.endSymbol;
+            pointerRange = [stackPointer,stackPointer+input.length+1];
+          } else {
+            pointerRange = [stackPointer,stackPointer+input.length];
           }
           
           function doStepTM(machine,state){
@@ -2514,7 +2533,6 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
             var item = {state:state,stack:stack.slice(0),pointer:stackPointer,lastPointer:lastPointer};
             self.simulationTrace[machine].items.push(item); 
             var c = stack[stackPointer];
-            var blankSymbol = self.automaton.StackAlphabet[0];
             // search all transitions for matching input
             for(var i=0; i < state.Transitions.length; i++){
               for(var z=0; z < state.Transitions[i].Labels.length; z++){
@@ -2522,7 +2540,7 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
                 var readSymbol = label[0];
                 var writeSymbol = label[1];
 
-                var isWildcardMatch = (readSymbol == '*' && c != blankSymbol);
+                var isWildcardMatch = (readSymbol == '*' && c != self.automaton.blankSymbol);
 
                 if(isWildcardMatch || readSymbol == c){
                   // we found one
