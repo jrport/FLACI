@@ -1344,25 +1344,38 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
           //////////////////////////////////////////////////////
           if(self.Type == "TM"){
             // check for double used alphabet characters 
-            for(var z=0; z < self.automaton.StackAlphabet.length; z++){
-              var usedIn = [];
-              for(var t=0; t < s.Transitions.length; t++){
+            var hasWildcard = false;
+            for(var t=0; t < s.Transitions.length; t++){
                 for(var l=0; l < s.Transitions[t].Labels.length; l++){
-                  if(s.Transitions[t].Labels[l][0] == self.automaton.StackAlphabet[z]) usedIn.push({trans:s.Transitions[t],index:l});
+                  if(s.Transitions[t].Labels[l][0] == '*') {
+                    hasWildcard = true;
+                    break;
+                  }
                 }
-              }
-              if(usedIn.length > 1){
-                for(var t=0; t < usedIn.length; t++) {
-                  usedIn[t].trans.hasLabelErrors.push(usedIn[t].index);
-                  usedIn[t].trans.hasError = true;
+                if (hasWildcard) break;
+            }
+
+            if (!hasWildcard) {
+                for(var z=0; z < self.automaton.StackAlphabet.length; z++){
+                  var usedIn = [];
+                  for(var t=0; t < s.Transitions.length; t++){
+                    for(var l=0; l < s.Transitions[t].Labels.length; l++){
+                      if(s.Transitions[t].Labels[l][0] == self.automaton.StackAlphabet[z]) usedIn.push({trans:s.Transitions[t],index:l});
+                    }
+                  }
+                  if(usedIn.length > 1){
+                    for(var t=0; t < usedIn.length; t++) {
+                      usedIn[t].trans.hasLabelErrors.push(usedIn[t].index);
+                      usedIn[t].trans.hasError = true;
+                    }
+                    self.correct = false;
+                    s.hasError = true;
+                    if(verbose){
+                      self.showAlert($translate.instant("ERRORS.TOOMANYCHARSTRANSITION",{CHAR:self.automaton.StackAlphabet[z],STATE:s.Name}));
+                      verbose = false;
+                    }
+                  }
                 }
-                self.correct = false;
-                s.hasError = true;
-                if(verbose){
-                  self.showAlert($translate.instant("ERRORS.TOOMANYCHARSTRANSITION",{CHAR:self.automaton.StackAlphabet[z],STATE:s.Name}));
-                  verbose = false;
-                }
-              }
             }
           }
           //////////////////////////////////////////////////////
@@ -2501,18 +2514,29 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
             var item = {state:state,stack:stack.slice(0),pointer:stackPointer,lastPointer:lastPointer};
             self.simulationTrace[machine].items.push(item); 
             var c = stack[stackPointer];
+            var blankSymbol = self.automaton.StackAlphabet[0];
             // search all transitions for matching input
             for(var i=0; i < state.Transitions.length; i++){
               for(var z=0; z < state.Transitions[i].Labels.length; z++){
-                if(state.Transitions[i].Labels[z][0] == c){
+                var label = state.Transitions[i].Labels[z];
+                var readSymbol = label[0];
+                var writeSymbol = label[1];
+
+                var isWildcardMatch = (readSymbol == '*' && c != blankSymbol);
+
+                if(isWildcardMatch || readSymbol == c){
                   // we found one
-                  stack[stackPointer] = state.Transitions[i].Labels[z][1];
+                  if (writeSymbol == '*') {
+                    stack[stackPointer] = c; // write the read symbol
+                  } else {
+                    stack[stackPointer] = writeSymbol;
+                  }
                   lastPointer = stackPointer;
                   
-                  if(state.Transitions[i].Labels[z][2] == 'L') {
+                  if(label[2] == 'L') {
                     stackPointer--; 
                   }
-                  if(state.Transitions[i].Labels[z][2] == 'R') {
+                  if(label[2] == 'R') {
                     stackPointer++; 
                   }
                   pointerRange[0] = Math.min(pointerRange[0],stackPointer); 

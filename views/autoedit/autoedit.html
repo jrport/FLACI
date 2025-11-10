@@ -432,7 +432,7 @@
                   ng-mousemove="a.moveDrag($event)" ng-mouseup="a.endDrag($event)" ng-mousedown="a.unselectClick()" touchevents touchpassdefault="true">
 
                <svg ng-attr-id="{{'svg'+a.ID}}" xmlns="http://www.w3.org/2000/svg" class="transitionGraph zoom{{a.automatonGraphZoom}}"
-                    width="1920" height="1080">
+                    width="4000" height="4000">
                  <!-- TransitionLines -->
                  <g ng-repeat="s in a.States" style="pointer-events:stroke;">
 
@@ -673,12 +673,14 @@
                <md-input-container flex>
                  <label><span translate="AUTOEDIT.READ"></span></label>
                  <md-select ng-model="la[0]" ng-change="a.checkAutomaton();a.makeUndoStep();">
+                   <md-option value="*">*</md-option>
                    <md-option ng-repeat="z in a.automaton.StackAlphabet" value="{{z}}">{{z}}</md-option>
                  </md-select>
                </md-input-container>
                <md-input-container flex>
                  <label><span translate="AUTOEDIT.WRITE"></span></label>
                  <md-select ng-model="la[1]" ng-change="a.checkAutomaton();a.makeUndoStep();">
+                   <md-option value="*">*</md-option>
                    <md-option ng-repeat="z in a.automaton.StackAlphabet" value="{{z}}">{{z}}</md-option>
                  </md-select>
                </md-input-container>
