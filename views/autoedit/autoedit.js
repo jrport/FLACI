@@ -1194,6 +1194,29 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
         }        
       };
 
+      self.symbolMatches = function(pattern, symbol, blankSymbol) {
+        if (pattern === symbol) {
+            return true;
+        }
+        if (pattern === '*') {
+            return symbol !== blankSymbol;
+        }
+        if (pattern.endsWith('*') && pattern.startsWith('*')) {
+            if(pattern.length < 2) return false;
+            var middle = pattern.substring(1, pattern.length - 1);
+            return symbol.includes(middle);
+        }
+        if (pattern.endsWith('*')) {
+            var prefix = pattern.substring(0, pattern.length - 1);
+            return symbol.startsWith(prefix);
+        }
+        if (pattern.startsWith('*')) {
+            var suffix = pattern.substring(1);
+            return symbol.endsWith(suffix);
+        }
+        return false;
+      };
+
       self.checkAutomaton = function(verbose){ 
         self.correct = true;
         var hasFinalState = false;
@@ -1358,7 +1381,7 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
             var hasWildcard = false;
             for(var t=0; t < s.Transitions.length; t++){
                 for(var l=0; l < s.Transitions[t].Labels.length; l++){
-                  if(s.Transitions[t].Labels[l][0] == '*') {
+                  if(s.Transitions[t].Labels[l][0] == '*' || s.Transitions[t].Labels[l][0].includes('*')) {
                     hasWildcard = true;
                     break;
                   }
@@ -2540,9 +2563,7 @@ app.controller('AutoEditController', function($scope, $location, $routeParams, $
                 var readSymbol = label[0];
                 var writeSymbol = label[1];
 
-                var isWildcardMatch = (readSymbol == '*' && c != self.automaton.blankSymbol);
-
-                if(isWildcardMatch || readSymbol == c){
+                if(self.symbolMatches(readSymbol, c, self.automaton.blankSymbol)){
                   // we found one
                   if (writeSymbol == '*') {
                     stack[stackPointer] = c; // write the read symbol
